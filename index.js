@@ -27,6 +27,7 @@ var words = [
     "condition",
     "comfortable"
 ];
+
 const randomWord = ()=>{
     return words[Math.floor(Math.random() * words.length)];
 }
@@ -86,7 +87,7 @@ const View = (()=>{
     }
 })();
 
-const Model = ((view)=>{
+const Model = ((view,api)=>{
     const {domSelector} = view;
     class State{
         constructor(){
@@ -104,13 +105,20 @@ const Model = ((view)=>{
             this._word = word;
         }
 
-        setCurrentWord(startover = false){
+        setCurrentWord(startover,clearWrong){
             this.word = randomWord();
+            //if using api to fetch data:
+            // api.getData.then((data)=>{
+            //     this._word = data[0];
+            //     this.currentWord = this._word.split("");
+            // })
             this.currentWord = this._word.split("");
             this.answer = [];
-            if (startover){
+            if (clearWrong){
                 this.wrong = 0;
                 this.correct = 0;
+            }
+            if (startover){
                 this.history = [];
                 view.clearHist();
             }
@@ -129,8 +137,8 @@ const Model = ((view)=>{
             }
         }
 
-        initRender(startover = false){
-            this.setCurrentWord(startover);
+        initRender(startover = false,clearWrong = false){
+            this.setCurrentWord(startover,clearWrong);
             const wordElem = document.querySelector(domSelector.word);
             view.render(wordElem,view.createTmp(this.currentWord));
             view.renderWrong(this.wrong);
@@ -164,8 +172,7 @@ const Model = ((view)=>{
 
             setTimeout(()=>{
                 if (this.answer.length === 0 && this.wrong < 10){
-                    // this.initRender();
-                    this.initRender(true)
+                    this.initRender(true,false);
                     this.correct++;
                 }
             },500);
@@ -175,23 +182,45 @@ const Model = ((view)=>{
         State,
     }
 
-})(View);
+})(View,api);
 
 const Controller = ((model,view)=>{
     const {State} = model;
     const {domSelector} = view;
     const state = new State(); 
+    
+    var intervalId;
+    var startTimer = (startover=false,clearWrong=false)=> {
+        let timeLeft = 60;
+        if (startover){state.initRender(true,true);}
+        intervalId = setInterval(() => {
+            timeLeft--;
+            console.log(timeLeft);
+            if (timeLeft <= 0) {
+                clearInterval(intervalId); 
+                alert("Time's up! Click OK to start again."); 
+                state.initRender(startover,clearWrong); 
+                timeLeft = 60; 
+                startTimer(); 
+            }
+        }, 1000);
+    };
+
     const init = ()=>{
         state.initRender();
+        startTimer(); 
+
     }
     const enterGuess = ()=>{
         const input = document.querySelector(domSelector.input);
         input.addEventListener("keyup",(e)=>{
 
             if (e.keyCode === 13 && state.wrong === 10){
+                clearInterval(intervalId)
                 alert(`Game Over!You have guessed ${state.correct} words!`)
                 e.target.value = "";
-                state.initRender(true);
+                // state.initRender(true);
+                startTimer(true,true);
                 return;
             }
             if(e.keyCode === 13 && e.target.value.length === 1){
@@ -203,15 +232,16 @@ const Controller = ((model,view)=>{
     const newGame = ()=>{
         const btn = document.querySelector(domSelector.btn);
         btn.addEventListener("click",()=>{
-            state.initRender(true);
+            clearInterval(intervalId);
+            state.initRender(true,true);
             view.clearInput();
+            startTimer();
         })
     }
     const bootstrap = () =>{
         init()
         enterGuess()
         newGame()
-        
     }
     return {
         bootstrap
