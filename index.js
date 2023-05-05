@@ -34,6 +34,13 @@ const randomWord = ()=>{
 
 
 const View = (()=>{
+    let domSelector = {
+        word: ".main__word",
+        wrongNum: ".header__wrong",
+        input: ".main__input",
+        btn:".main__btn",
+    }
+
     const createTmp = (arr)=>{
         let tmp = "";
         arr.forEach((char)=>{
@@ -46,14 +53,15 @@ const View = (()=>{
         ele.innerHTML = temp;
     }
     const renderWrong = (num)=>{
-        const wrongElem = document.querySelector(".wrong");
+        const wrongElem = document.querySelector(domSelector.wrongNum);
         wrongElem.innerText = num;
     }
     const clearInput = ()=>{
-        const input = document.querySelector(".input");
+        const input = document.querySelector(domSelector.input);
         input.value = "";
     }
     return {
+        domSelector,
         createTmp,
         render,
         renderWrong,
@@ -62,7 +70,7 @@ const View = (()=>{
 })();
 
 const Model = ((view)=>{
-
+    const {domSelector} = view;
     class State{
         constructor(){
             this._word = "";
@@ -78,7 +86,6 @@ const Model = ((view)=>{
             this._word = word;
         }
 
-        //set new word, new current word, new answer
         setCurrentWord(startover = false){
             this.word = randomWord();
             this.currentWord = this._word.split("");
@@ -87,7 +94,7 @@ const Model = ((view)=>{
                 this.wrong = 0;
                 this.correct = 0;
             }
-            let guessNum = Math.floor(Math.random() * (this.currentWord.length-1)) + 1 //should bigger that 0
+            let guessNum = Math.floor(Math.random() * (this.currentWord.length-1)) + 1 
             const arr = [];
             while (guessNum>0){
                 const idx = Math.floor(Math.random() * this._word.length);
@@ -100,20 +107,14 @@ const Model = ((view)=>{
                     guessNum--;
                 }  
             }
-            console.log(this.word);
-            console.log(this.answer);
         }
 
-        //initial render:generate a random word and set/render current word
         initRender(startover = false){
-            
             this.setCurrentWord(startover);
-            const wordElem = document.querySelector(".word");
+            const wordElem = document.querySelector(domSelector.word);
             view.render(wordElem,view.createTmp(this.currentWord));
             view.renderWrong(this.wrong);
         }
-
-        
 
         renderInput(char){
             if (this.answer.includes(char)){
@@ -124,7 +125,7 @@ const Model = ((view)=>{
                         break;
                     }
                 }
-                const wordElem = document.querySelector(".word");
+                const wordElem = document.querySelector(domSelector.word);
                 view.render(wordElem,view.createTmp(this.currentWord));
             }else{
                 this.wrong++;
@@ -137,34 +138,29 @@ const Model = ((view)=>{
                     this.correct++;
                 }
             },500);
-            
-
-            
         }
     }
-
     return {
         State,
-        
     }
 
 })(View);
 
 const Controller = ((model,view)=>{
     const {State} = model;
+    const {domSelector} = view;
     const state = new State(); 
-
     const init = ()=>{
         state.initRender();
     }
     const enterGuess = ()=>{
-        const input = document.querySelector(".input");
+        const input = document.querySelector(domSelector.input);
         input.addEventListener("keyup",(e)=>{
             if (e.keyCode === 13 && state.wrong === 10){
                 alert(`Game Over!You have guessed ${state.correct} words!`)
                 e.target.value = "";
+                state.initRender(true);
                 return;
-                
             }
             if(e.keyCode === 13 && e.target.value.length === 1){
                 state.renderInput(e.target.value);
@@ -173,7 +169,7 @@ const Controller = ((model,view)=>{
         })
     }
     const newGame = ()=>{
-        const btn = document.querySelector(".btn");
+        const btn = document.querySelector(domSelector.btn);
         btn.addEventListener("click",()=>{
             state.initRender(true);
             view.clearInput();
