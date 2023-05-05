@@ -60,12 +60,29 @@ const View = (()=>{
         const input = document.querySelector(domSelector.input);
         input.value = "";
     }
+    const renderHist = (char,correct)=>{
+        const histElem = document.querySelector(".main__history");
+        const span = document.createElement("span");
+        span.innerText = char;
+        if (correct){
+            span.style.color = "green";
+        }else{
+            span.style.color = "red";
+        }
+        histElem.appendChild(span);
+    }
+    const clearHist = ()=>{
+        const histElem = document.querySelector(".main__history");
+        histElem.innerHTML = "";
+    }
     return {
         domSelector,
         createTmp,
         render,
         renderWrong,
-        clearInput
+        clearInput,
+        renderHist,
+        clearHist
     }
 })();
 
@@ -78,6 +95,7 @@ const Model = ((view)=>{
             this.answer = [];
             this.wrong = 0;
             this.correct = 0;
+            this.history = [];
         }
         get word(){
             return this._word;
@@ -93,6 +111,8 @@ const Model = ((view)=>{
             if (startover){
                 this.wrong = 0;
                 this.correct = 0;
+                this.history = [];
+                view.clearHist();
             }
             let guessNum = Math.floor(Math.random() * (this.currentWord.length-1)) + 1 
             const arr = [];
@@ -117,6 +137,13 @@ const Model = ((view)=>{
         }
 
         renderInput(char){
+            if (this.history.includes(char) && !this.answer.includes(char)){
+                alert("You have already guessed this letter!")
+                return;
+            }else{
+                this.history.push(char);
+            }
+
             if (this.answer.includes(char)){
                 for (let i=0;i<this.currentWord.length;i++){
                     if (this.currentWord[i]==="_" && this._word[i] === char){
@@ -127,14 +154,18 @@ const Model = ((view)=>{
                 }
                 const wordElem = document.querySelector(domSelector.word);
                 view.render(wordElem,view.createTmp(this.currentWord));
+                view.renderHist(char,true)
             }else{
                 this.wrong++;
                 view.renderWrong(this.wrong);
+                
+                view.renderHist(char,false)
             }
 
             setTimeout(()=>{
                 if (this.answer.length === 0 && this.wrong < 10){
-                    this.initRender();
+                    // this.initRender();
+                    this.initRender(true)
                     this.correct++;
                 }
             },500);
@@ -156,6 +187,7 @@ const Controller = ((model,view)=>{
     const enterGuess = ()=>{
         const input = document.querySelector(domSelector.input);
         input.addEventListener("keyup",(e)=>{
+
             if (e.keyCode === 13 && state.wrong === 10){
                 alert(`Game Over!You have guessed ${state.correct} words!`)
                 e.target.value = "";
